@@ -1,1 +1,3 @@
 config/config.go
+.DS_Store
+.idea/*
