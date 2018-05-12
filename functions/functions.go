@@ -52,7 +52,13 @@ func checker() {
 		status = ""
 	}
 }
+func Pin(b ext.Bot, u gotgbot.Update) {
+	b.PinChatMessage(u.Message.Chat.Id, u.EffectiveMessage.ReplyToMessage.MessageId)
+}
 
+func UnPin(b ext.Bot, u gotgbot.Update) {
+	b.UnpinChatMessage(u.Message.Chat.Id)
+}
 func Info(b ext.Bot, u gotgbot.Update) {
 
 	if u.EffectiveMessage.ReplyToMessage != nil {
