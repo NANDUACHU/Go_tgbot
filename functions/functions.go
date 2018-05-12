@@ -20,8 +20,25 @@ var user2 = ""
 var user3 = ""
 
 func Start(b ext.Bot, u gotgbot.Update) {
-	b.SendMessage(u.Message.Chat.Id, "https://github.com/Shabier/Go_tgbot")
-}
+	user := u.EffectiveUser
+	switch {
+	case u.EffectiveChat.Type == "private":
+		mark :="Hey " + fmt.Sprintf("%v", user.FirstName) + ", my name is GoBot! " +
+			"If you have any questions on how to use me, read /help - and then head to @GotgbotChat.\n\n"+
+			"I'm a group manager bot maintained by I'm a group manager bot maintained by " +
+			"[this guy](https://t.me/shabier). I'm built in Golang, using " +
+			"the [gotgbot](https://github.com/PaulSonOfLars/gotgbot) library " +
+			"which is inspired on the [python-telegram-bot library](https://python-telegram-bot.org/), " +
+			"and am fully opensource - you can find what makes me " +
+			"tick [here](https://github.com/Shabier/Go_tgbot)\n\n"+
+			"You can find the list of available commands with /help."
+		msg := b.NewSendableMessage(u.Message.Chat.Id, mark)
+		msg.ParseMode = parsemode.Markdown
+		msg.Send()
+	default:
+		b.SendMessage(u.Message.Chat.Id, "hoi")
+	}
+	}
 
 func checker() {
 	owner := fmt.Sprintf("%v", owner)
