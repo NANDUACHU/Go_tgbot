@@ -27,13 +27,15 @@ func main() {
 	updater.Dispatcher.AddHandler(handlers.NewCommand("get", functions.Get))
 	updater.Dispatcher.AddHandler(handlers.NewCommand("info", functions.Info))
 	updater.Dispatcher.AddHandler(handlers.NewCommand("kick", functions.Kick))
-	updater.Dispatcher.AddHandler(handlers.NewCommand("invitelink", functions.InviteLink))
-
+	updater.Dispatcher.AddHandler(handlers.NewCommand("ban", functions.Ban))
+	updater.Dispatcher.AddHandler(handlers.NewCommand("unban", functions.UnBan))
+	updater.Dispatcher.AddHandler(handlers.NewCommand("admincheck", functions.AdminCheck))
+	updater.Dispatcher.AddHandler(handlers.NewCommand("hi", functions.Hi))
+	updater.Dispatcher.AddHandler(handlers.NewCommand("link", functions.InviteLink))
 	updater.Dispatcher.AddHandler(handlers.NewCommand("id", functions.Id))
 	updater.Dispatcher.AddHandler(handlers.NewCommand("stop", functions.Stop))
 	updater.Dispatcher.AddHandler(handlers.NewCommand("filter", functions.FiltersSet))
 	updater.Dispatcher.AddHandler(handlers.NewRegex("(?i)hello", functions.Hi))
-
 	updater.Dispatcher.AddHandler(handlers.NewMessage(Filters.Sticker, functions.StickerDetect))
 
 	updater.StartPolling()

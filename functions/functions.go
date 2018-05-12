@@ -6,39 +6,72 @@ import (
 	"github.com/PaulSonOfLars/gotgbot"
 	"github.com/PaulSonOfLars/gotgbot/parsemode"
 	"strings"
-	"github.com/PaulSonOfLars/gotgbot/handlers"
 	"fmt"
 	"github.com/PaulSonOfLars/gotgbot/ext/helpers"
+	"regexp"
+	"github.com/PaulSonOfLars/gotgbot/handlers"
 )
 
 var updater = gotgbot.NewUpdater(config.APIKEY)
+var owner = config.OWNER
+var sudoUser = config.SUDOUSER
+var status = ""
+var user2 = ""
+var user3 = ""
 
 func Start(b ext.Bot, u gotgbot.Update) {
-	b.SendMessage(u.Message.Chat.Id, "Hi")
+	b.SendMessage(u.Message.Chat.Id, "https://github.com/Shabier/Go_tgbot")
+}
 
+func checker() {
+	owner := fmt.Sprintf("%v", owner)
+	sudoUser := fmt.Sprintf("%v", sudoUser)
+	switch {
+	case sudoUser == user2:
+		status = "This person is one of my sudo users! Nearly as powerful as my owner - so watch it."
+	case owner == user2:
+		status = "This person is my owner - I would never do anything against them!"
+	default:
+		status = ""
+	}
 }
 
 func Info(b ext.Bot, u gotgbot.Update) {
+
 	if u.EffectiveMessage.ReplyToMessage != nil {
+		user2 = fmt.Sprintf("%v", u.EffectiveMessage.ReplyToMessage.From.Id)
+	} else {
+		user2 = fmt.Sprintf("%v", u.EffectiveUser.Id)
+	}
+
+	switch {
+	case u.EffectiveMessage.ReplyToMessage != nil:
 		user := u.EffectiveMessage.ReplyToMessage.From
 		mark := fmt.Sprintf("*User info:*\n" +
 			"ID: `" + fmt.Sprintf("%v", user.Id) + "`\n" +
 			"First name: " + user.FirstName + "\n") +
 			"Username: @" + helpers.EscapeMarkdown(user.Username) + "\n" +
-			"Permanent user link for: [" + user.FirstName + " " + user.LastName + "](tg://user?id=" + fmt.Sprintf("%v", user.Id) + ")\n"
-		msg := b.NewSendableMessage(u.Message.Chat.Id, mark)
+			"Permanent link for: [" + user.FirstName + " " + user.LastName + "](tg://user?id=" +
+			fmt.Sprintf("%v", user.Id) + ")\n"
+		checker()
+		msg := b.NewSendableMessage(u.Message.Chat.Id, mark+
+			status)
 		msg.ParseMode = parsemode.Markdown
 		msg.ReplyToMessageId = u.Message.MessageId
 		msg.DisableWebPreview = true
 		msg.Send()
-	} else {
+		status = ""
+	default:
 		user := u.EffectiveUser
 		mark := fmt.Sprintf("*User info:*\n" +
 			"ID: `" + fmt.Sprintf("%v", user.Id) + "`\n" +
 			"First name: " + user.FirstName + "\n") +
 			"Username: @" + helpers.EscapeMarkdown(user.Username) + "\n" +
-			"Permanent user link for: [" + user.FirstName + " " + user.LastName + "](tg://user?id=" + fmt.Sprintf("%v", user.Id) + ")\n"
-		msg := b.NewSendableMessage(u.Message.Chat.Id, mark)
+			"Permanent link for: [" + user.FirstName + " " + user.LastName + "](tg://user?id=" +
+			fmt.Sprintf("%v", user.Id) + ")\n"
+		checker()
+		msg := b.NewSendableMessage(u.Message.Chat.Id, mark+
+			status)
 		msg.ParseMode = parsemode.Markdown
 		msg.ReplyToMessageId = u.Message.MessageId
 		msg.DisableWebPreview = true
@@ -47,31 +80,150 @@ func Info(b ext.Bot, u gotgbot.Update) {
 }
 
 func Kick(b ext.Bot, u gotgbot.Update) {
-	if u.EffectiveMessage.ReplyToMessage!= nil{
-		b.KickChatMember(u.Message.Chat.Id, u.EffectiveMessage.ReplyToMessage.From.Id)
-	}else{
-		b.SendMessage(u.Message.Chat.Id, "You dont seem to reply to someone.")
+	check, _ := b.GetChatAdministrators(u.Message.Chat.Id)
+	reg := regexp.MustCompile(`[^0-9]+`)
+	res := reg.ReplaceAllString(fmt.Sprintf("%s\n", check), "${1}")
+	user := fmt.Sprintf("%v", u.EffectiveUser.Id)
+	switch {
+	case strings.Contains(fmt.Sprintf("%v", owner), fmt.Sprintf("%v", u.EffectiveUser.Id)) ||
+		strings.Contains(fmt.Sprintf("%v", sudoUser), fmt.Sprintf("%v", u.EffectiveUser.Id)) ||
+		strings.Contains(res, user):
+		switch {
+		case u.EffectiveMessage.ReplyToMessage != nil:
+			b.KickChatMember(u.Message.Chat.Id, u.EffectiveMessage.ReplyToMessage.From.Id)
+			user := u.EffectiveUser
+			mark :=
+				"[" + u.EffectiveUser.FirstName + " " + u.EffectiveUser.LastName + "](tg://user?id=" +
+					fmt.Sprintf("%v", user.Id) + ")" +
+					"kicked " +
+					"[" + u.EffectiveMessage.ReplyToMessage.From.FirstName + " " + u.EffectiveMessage.ReplyToMessage.From.LastName + "](tg://user?id=" +
+					fmt.Sprintf("%v", u.EffectiveMessage.ReplyToMessage.From.Id) + ")"
+			msg := b.NewSendableMessage(u.Message.Chat.Id, mark)
+			msg.ParseMode = parsemode.Markdown
+			msg.ReplyToMessageId = u.Message.MessageId
+			msg.DisableWebPreview = true
+			msg.Send()
+
+		default:
+			b.ReplyMessage(u.Message.Chat.Id, "You don't seem to be referring to a user.", u.Message.MessageId)
+		}
+	default:
+		b.ReplyMessage(u.Message.Chat.Id, "Who dis non-admin telling me what to do?", u.Message.MessageId)
+	}
+}
+
+func Ban(b ext.Bot, u gotgbot.Update) {
+	check, _ := b.GetChatAdministrators(u.Message.Chat.Id)
+	reg := regexp.MustCompile(`[^0-9]+`)
+	res := reg.ReplaceAllString(fmt.Sprintf("%s\n", check), "${1}")
+	user := fmt.Sprintf("%v", u.EffectiveUser.Id)
+	switch {
+	case strings.Contains(fmt.Sprintf("%v", owner), fmt.Sprintf("%v", u.EffectiveUser.Id)) ||
+		strings.Contains(fmt.Sprintf("%v", sudoUser), fmt.Sprintf("%v", u.EffectiveUser.Id)) ||
+		strings.Contains(res, user):
+		switch {
+		case u.EffectiveMessage.ReplyToMessage != nil:
+			b.KickChatMember(u.Message.Chat.Id, u.EffectiveMessage.ReplyToMessage.From.Id)
+			user := u.EffectiveUser
+			mark :=
+				"[" + u.EffectiveUser.FirstName + " " + u.EffectiveUser.LastName + "](tg://user?id=" +
+					fmt.Sprintf("%v", user.Id) + ")" +
+					"banned " +
+					"[" + u.EffectiveMessage.ReplyToMessage.From.FirstName + " " + u.EffectiveMessage.ReplyToMessage.From.LastName + "](tg://user?id=" +
+					fmt.Sprintf("%v", u.EffectiveMessage.ReplyToMessage.From.Id) + ")"
+			msg := b.NewSendableMessage(u.Message.Chat.Id, mark)
+			msg.ParseMode = parsemode.Markdown
+			msg.ReplyToMessageId = u.Message.MessageId
+			msg.DisableWebPreview = true
+			msg.Send()
+
+		default:
+			b.ReplyMessage(u.Message.Chat.Id, "You don't seem to be referring to a user.", u.Message.MessageId)
+		}
+	default:
+		b.ReplyMessage(u.Message.Chat.Id, "Who dis non-admin telling me what to do?", u.Message.MessageId)
+	}
+}
+
+func UnBan(b ext.Bot, u gotgbot.Update) {
+	check, _ := b.GetChatAdministrators(u.Message.Chat.Id)
+	reg := regexp.MustCompile(`[^0-9]+`)
+	res := reg.ReplaceAllString(fmt.Sprintf("%s\n", check), "${1}")
+	user := fmt.Sprintf("%v", u.EffectiveUser.Id)
+	switch {
+	case strings.Contains(fmt.Sprintf("%v", owner), fmt.Sprintf("%v", u.EffectiveUser.Id)) ||
+		strings.Contains(fmt.Sprintf("%v", sudoUser), fmt.Sprintf("%v", u.EffectiveUser.Id)) ||
+		strings.Contains(res, user):
+		switch {
+		case u.EffectiveMessage.ReplyToMessage != nil:
+			b.UnbanChatMember(u.Message.Chat.Id, u.EffectiveMessage.ReplyToMessage.From.Id)
+			user := u.EffectiveUser
+			mark :=
+				"[" + u.EffectiveUser.FirstName + " " + u.EffectiveUser.LastName + "](tg://user?id=" +
+					fmt.Sprintf("%v", user.Id) + ")" +
+					"unbanned " +
+					"[" + u.EffectiveMessage.ReplyToMessage.From.FirstName + " " + u.EffectiveMessage.ReplyToMessage.From.LastName + "](tg://user?id=" +
+					fmt.Sprintf("%v", u.EffectiveMessage.ReplyToMessage.From.Id) + ")"
+			msg := b.NewSendableMessage(u.Message.Chat.Id, mark)
+			msg.ParseMode = parsemode.Markdown
+			msg.ReplyToMessageId = u.Message.MessageId
+			msg.DisableWebPreview = true
+			msg.Send()
+
+		default:
+			b.ReplyMessage(u.Message.Chat.Id, "You don't seem to be referring to a user.", u.Message.MessageId)
+		}
+	default:
+		b.ReplyMessage(u.Message.Chat.Id, "Who dis non-admin telling me what to do?", u.Message.MessageId)
 	}
 }
 
 func Id(b ext.Bot, u gotgbot.Update) {
-	mark := "This group's id is `" + fmt.Sprintf("%v", u.EffectiveChat.Id) + "`."
-	msg := b.NewSendableMessage(u.Message.Chat.Id, mark)
-	msg.ParseMode = parsemode.Markdown
-	msg.ReplyToMessageId = u.Message.MessageId
-	msg.Send()
+	switch {
+	case u.EffectiveMessage.ReplyToMessage != nil:
+		mark := "[" + u.EffectiveMessage.ReplyToMessage.From.FirstName + "](tg://user?id=" +
+			fmt.Sprintf("%v", u.EffectiveMessage.ReplyToMessage.From.Id) + ")" +
+			"'s id is `" + fmt.Sprintf("%v", u.EffectiveMessage.ReplyToMessage.From.Id) + "`."
+		msg := b.NewSendableMessage(u.Message.Chat.Id, mark)
+		msg.ParseMode = parsemode.Markdown
+		msg.ReplyToMessageId = u.Message.MessageId
+		msg.Send()
+	default:
+		mark := "This group's id is `" + fmt.Sprintf("%v", u.EffectiveChat.Id) + "`."
+		msg := b.NewSendableMessage(u.Message.Chat.Id, mark)
+		msg.ParseMode = parsemode.Markdown
+		msg.ReplyToMessageId = u.Message.MessageId
+		msg.Send()
+	}
 }
 
 func InviteLink(b ext.Bot, u gotgbot.Update) {
-
-	//b.ReplyMessage(u.Message.Chat.Id, u.EffectiveChat.InviteLink, u.Message.MessageId)
-
+	fmt.Println("weg")
+	fmt.Println(u.Message.Chat.InviteLink)
 }
 
 func Get(b ext.Bot, u gotgbot.Update) {
 
 	//splitter := strings.TrimPrefix(u.EffectiveMessage.Text, "/get ")
 
+}
+
+func AdminCheck(b ext.Bot, u gotgbot.Update) {
+	check, _ := b.GetChatAdministrators(u.Message.Chat.Id)
+	reg := regexp.MustCompile(`[^0-9]+`)
+	res := reg.ReplaceAllString(fmt.Sprintf("%s\n", check), "${1}")
+	user := fmt.Sprintf("%v", u.EffectiveUser.Id)
+
+	switch {
+	case strings.Contains(fmt.Sprintf("%v", owner), user):
+		b.ReplyMessage(u.Message.Chat.Id, "This person is my owner - I would never do anything against them!", u.EffectiveMessage.MessageId)
+	case strings.Contains(fmt.Sprintf("%v", sudoUser), user):
+		b.ReplyMessage(u.Message.Chat.Id, "This user is one of my sudo users, I would never do anything against them!", u.EffectiveMessage.MessageId)
+	case strings.Contains(res, user):
+		b.ReplyMessage(u.Message.Chat.Id, "This user is an admin", u.EffectiveMessage.MessageId)
+	default:
+		b.ReplyMessage(u.Message.Chat.Id, "You're a member", u.EffectiveMessage.MessageId)
+	}
 }
 
 func Stop(b ext.Bot, u gotgbot.Update) {
@@ -83,14 +235,14 @@ func Hi(b ext.Bot, u gotgbot.Update) {
 }
 
 func StickerDetect(b ext.Bot, u gotgbot.Update) {
-	//b.SendMessage("Nice sticker...!", u.Message.Chat.Id)
-	if _, err := u.EffectiveMessage.Delete(); err != nil {
-		u.EffectiveMessage.ReplyMessage("Can't delete, you're in PM")
-	} else {
-		msg := b.NewSendableMessage(u.Message.Chat.Id, "Don't you *dare* send _stickers_ here!")
-		msg.ParseMode = parsemode.Markdown
-		msg.Send()
-	}
+	////b.SendMessage("Nice sticker...!", u.Message.Chat.Id)
+	//if _, err := u.EffectiveMessage.Delete(); err != nil {
+	//	u.EffectiveMessage.ReplyMessage("Can't delete, you're in PM")
+	//} else {
+	//	msg := b.NewSendableMessage(u.Message.Chat.Id, "Don't you *dare* send _stickers_ here!")
+	//	msg.ParseMode = parsemode.Markdown
+	//	msg.Send()
+	//}
 }
 
 func Text_detect(b ext.Bot, u gotgbot.Update) {
