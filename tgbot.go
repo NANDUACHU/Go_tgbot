@@ -37,7 +37,10 @@ func main() {
 	updater.Dispatcher.AddHandler(handlers.NewCommand("filter", functions.FiltersSet))
 	updater.Dispatcher.AddHandler(handlers.NewCommand("pin", functions.Pin))
 	updater.Dispatcher.AddHandler(handlers.NewCommand("unpin", functions.UnPin))
+	updater.Dispatcher.AddHandler(handlers.NewCommand("help", functions.Help))
 	updater.Dispatcher.AddHandler(handlers.NewRegex("(?i)hello", functions.Hi))
+	updater.Dispatcher.AddHandler(handlers.NewCommand("datacheck", functions.DataCheck))
+	updater.Dispatcher.AddHandler(handlers.NewCommand("stats", functions.Stats))
 	updater.Dispatcher.AddHandler(handlers.NewMessage(Filters.Sticker, functions.StickerDetect))
 
 	updater.StartPolling()
