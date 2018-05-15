@@ -9,23 +9,25 @@ import (
 	"fmt"
 	"github.com/PaulSonOfLars/gotgbot/ext/helpers"
 	"regexp"
-	"github.com/PaulSonOfLars/gotgbot/handlers"
 	"github.com/mediocregopher/radix.v2/redis"
 	"log"
+	"github.com/PaulSonOfLars/gotgbot/handlers"
 )
 
 var updater = gotgbot.NewUpdater(config.APIKEY)
 var owner = config.OWNER
 var sudoUser = config.SUDOUSER
 var specialStatus = ""
-var user2 = ""
-var user3 = ""
-var userid = 1
+var user2 string
+var user3 string
+var userid int
 var username = ""
 
 func DataCheck(b ext.Bot, u gotgbot.Update) {
 	user := u.EffectiveMessage.ReplyToMessage
+
 	if user != nil {
+
 		userid := u.EffectiveMessage.ReplyToMessage.From.Id
 		username = strings.TrimPrefix(u.EffectiveMessage.ReplyToMessage.From.Username, "@")
 		firstname := u.EffectiveMessage.ReplyToMessage.From.FirstName
@@ -48,94 +50,39 @@ func DataCheck(b ext.Bot, u gotgbot.Update) {
 		//HSET 167349417 firstname Shabier
 		saveFirstname, err := conn.Cmd("HSET", username, "firstname", firstname).Int()
 		if err != nil {
-			log.Fatal(2)
+			log.Fatal(err)
 		}
 
-		b.SendMessage(u.Message.Chat.Id, "ID:\t" + fmt.Sprintf("%v", userid) + "\nUsername: @" +
-						username + "\nFirstname:\t" + firstname)
+		b.SendMessage(u.Message.Chat.Id, "ID:\t" + fmt.Sprintf("%v", userid) + "\nUsername: @"+
+			username+ "\nFirstname:\t"+ firstname)
 		fmt.Println(saveUsername, saveFirstname, saveUserID)
 
 		//returns the userid based on username
 		findUsername, err := conn.Cmd("HGET", userid, "username").Str()
 		if err != nil {
-			log.Fatal(1)
+			log.Fatal(err)
 		}
 		//returns the username based on the firstname
 		findFirstname, err := conn.Cmd("HGET", username, "firstname").Str()
 		if err != nil {
-			log.Fatal(4)
+			log.Fatal(err)
 		}
 
 		findUserID, err := conn.Cmd("HGET", username, "userid").Str()
 		if err != nil {
-			log.Fatal(5)
+			log.Fatal(err)
 		}
 
+		b.SendMessage(u.Message.Chat.Id, "Found\n"+
+			"UserID: "+ fmt.Sprintf("%v", findUserID)+
+			"\nUsername: @"+ findUsername+
+			"\nFirstname: "+ fmt.Sprintf("%v", findFirstname))
 
-		b.SendMessage(u.Message.Chat.Id, "Found\n"+ "Username: @" + findUsername + "\nFirstname:" +
-			fmt.Sprintf("%v" , findFirstname) +
-			"\nUserID: " + fmt.Sprintf("%v", findUserID))
 	}
 }
-
-func Check(user string, userid int,  firstname string){
-
-	conn, err := redis.Dial("tcp", "localhost:6379")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer conn.Close()
-
-	//HSET Shabier userid 167349417
-	saveUsername, err := conn.Cmd("HSET", userid, "username", username).Int()
-	if err != nil {
-		log.Fatal(err)
-	}
-	saveUserID, err := conn.Cmd("HSET", username, "userid", userid).Int()
-	if err != nil {
-		log.Fatal(err)
-	}
-	//HSET 167349417 firstname Shabier
-	saveFirstname, err := conn.Cmd("HSET", username, "firstname", firstname).Int()
-	if err != nil {
-		log.Fatal(2)
-	}
-
-	fmt.Println(saveUsername, saveFirstname, saveUserID)
-
-	//returns the userid based on username
-	findUsername, err := conn.Cmd("HGET", userid, "username").Str()
-	if err != nil {
-		log.Fatal(1)
-	}
-	//returns the username based on the firstname
-	findFirstname, err := conn.Cmd("HGET", username, "firstname").Str()
-	if err != nil {
-		log.Fatal(4)
-	}
-
-	findUserID, err := conn.Cmd("HGET", username, "userid").Str()
-	if err != nil {
-		log.Fatal(5)
-	}
-
-	msg := "Found\n"+ "Username: @" + findUsername + "\nFirstname:" +
-		fmt.Sprintf("%v" , findFirstname) +
-		"\nUserID: " + fmt.Sprintf("%v", findUserID)
-
-	fmt.Println(msg)
-	//return "Found\n"+ "Username: @" + findUsername + "\nFirstname:" +
-	//	fmt.Sprintf("%v" , findFirstname) +
-	//	"\nUserID: " + fmt.Sprintf("%v", findUserID
-}
-
-
 
 func Start(b ext.Bot, u gotgbot.Update) {
 	user := u.EffectiveUser
-	//userid := u.EffectiveMessage.ReplyToMessage.From.Id
-	//username = strings.TrimPrefix(u.EffectiveMessage.ReplyToMessage.From.Username, "@")
-	//firstname := u.EffectiveMessage.ReplyToMessage.From.FirstName
 	switch {
 	case u.EffectiveChat.Type == "private":
 		mark := "Hey " + fmt.Sprintf("%v", user.FirstName) + ", my name is GoBot! " +
@@ -183,12 +130,12 @@ func Stats(b ext.Bot, u gotgbot.Update) {
 	case strings.Contains(fmt.Sprintf("%v", owner), fmt.Sprintf("%v", u.EffectiveUser.Id)) ||
 		strings.Contains(fmt.Sprintf("%v", sudoUser), fmt.Sprintf("%v", u.EffectiveUser.Id)):
 		res, err := conn.Cmd("DBSIZE").Int()
-		total := res /2
+		total := res / 2
 		if err != nil {
 			log.Fatal(err)
 		}
-		msg := b.NewSendableMessage(u.Message.Chat.Id, "You got a whopping amount of `" +
-			fmt.Sprintf("%v", total)+"` users")
+		msg := b.NewSendableMessage(u.Message.Chat.Id, "You got a whopping amount of `"+
+			fmt.Sprintf("%v", total)+ "` users")
 		msg.ParseMode = parsemode.Markdown
 		msg.ReplyToMessageId = u.Message.MessageId
 		msg.Send()
@@ -220,43 +167,48 @@ func Info(b ext.Bot, u gotgbot.Update) {
 	}
 	defer conn.Close()
 
+	if u.EffectiveMessage.ReplyToMessage != nil {
+		user2 = fmt.Sprintf("%v", u.EffectiveMessage.ReplyToMessage.From.Id)
+	} else {
+		user2 = fmt.Sprintf("%v", u.EffectiveUser.Id)
+	}
+
 	switch {
 	case u.EffectiveMessage.ReplyToMessage != nil:
+		checker()
 		user := u.EffectiveMessage.ReplyToMessage.From
+
 		mark := fmt.Sprintf("*User info:*\n" +
 			"ID: `" + fmt.Sprintf("%v", user.Id) + "`\n" +
 			"First name: " + user.FirstName + "\n") +
 			"Username: @" + helpers.EscapeMarkdown(user.Username) + "\n" +
 			"Permanent link for: [" + user.FirstName + " " + user.LastName + "](tg://user?id=" +
-			fmt.Sprintf("%v", user.Id) + ")\n" + specialStatus
-		checker()
+			fmt.Sprintf("%v", user.Id) + ")\n"
+
 		msg := b.NewSendableMessage(u.Message.Chat.Id, mark+
 			specialStatus)
 		msg.ParseMode = parsemode.Markdown
 		msg.ReplyToMessageId = u.Message.MessageId
 		msg.Send()
-		specialStatus = ""
 	case strings.Contains(fmt.Sprintf("%v", u.EffectiveMessage), "/info @"):
 		username := strings.TrimPrefix(u.EffectiveMessage.Text, "/info @")
 		getUserID, err := conn.Cmd("HGET", username, "userid").Str()
 		findFirstname, err := conn.Cmd("HGET", username, "firstname").Str()
 		if err != nil {
-			b.SendMessage(u.Message.Chat.Id, "I don't seem to have interacted with this user before - " +
-				"please forward a message from them to give me control! (like a voodoo doll, I need a piece of " +
+			b.SendMessage(u.Message.Chat.Id, "I don't seem to have interacted with this user before - "+
+				"please forward a message from them to give me control! (like a voodoo doll, I need a piece of "+
 				"them to be able to execute certain commands...)")
 		} else {
-			if err != nil {
-				b.SendMessage(u.Message.Chat.Id, "I don't seem to have interacted with this user before - " +
-					"please forward a message from them to give me control! (like a voodoo doll, I need a piece of " +
-					"them to be able to execute certain commands...)")
-			}
+			user2 = getUserID
+			checker()
+
 			mark := "*User info:*\n" +
-				"ID: `" + fmt.Sprintf("%v", fmt.Sprintf("%v", getUserID)) + "`\n" +
-				"First name: " + findFirstname  + "\n" +
+				"ID: `" + fmt.Sprintf("%v", getUserID) + "`\n" +
+				"First name: " + findFirstname + "\n" +
 				"Username: @" + helpers.EscapeMarkdown(username) + "\n" +
 				"Permanent link for: [" + findFirstname + "](tg://user?id=" +
-				fmt.Sprintf("%v", getUserID) + ")\n" + specialStatus
-			checker()
+				fmt.Sprintf("%v", getUserID) + ")\n"
+
 			msg := b.NewSendableMessage(u.Message.Chat.Id, mark+
 				specialStatus)
 			msg.ParseMode = parsemode.Markdown
@@ -264,14 +216,16 @@ func Info(b ext.Bot, u gotgbot.Update) {
 			msg.Send()
 		}
 	default:
+		checker()
 		user := u.EffectiveUser
+
 		mark := fmt.Sprintf("*User info:*\n" +
 			"ID: `" + fmt.Sprintf("%v", user.Id) + "`\n" +
 			"First name: " + user.FirstName + "\n") +
 			"Username: @" + helpers.EscapeMarkdown(user.Username) + "\n" +
 			"Permanent link for: [" + user.FirstName + " " + user.LastName + "](tg://user?id=" +
-			fmt.Sprintf("%v", user.Id) + ")\n" + specialStatus
-		checker()
+			fmt.Sprintf("%v", user.Id) + ")\n"
+
 		msg := b.NewSendableMessage(u.Message.Chat.Id, mark+
 			specialStatus)
 		msg.ParseMode = parsemode.Markdown
@@ -305,7 +259,6 @@ func Kick(b ext.Bot, u gotgbot.Update) {
 			msg.ReplyToMessageId = u.Message.MessageId
 			msg.DisableWebPreview = true
 			msg.Send()
-
 		default:
 			b.ReplyMessage(u.Message.Chat.Id, "You don't seem to be referring to a user.", u.Message.MessageId)
 		}
@@ -339,7 +292,6 @@ func Ban(b ext.Bot, u gotgbot.Update) {
 			msg.ReplyToMessageId = u.Message.MessageId
 			msg.DisableWebPreview = true
 			msg.Send()
-
 		default:
 			b.ReplyMessage(u.Message.Chat.Id, "You don't seem to be referring to a user.", u.Message.MessageId)
 		}
@@ -373,7 +325,6 @@ func UnBan(b ext.Bot, u gotgbot.Update) {
 			msg.ReplyToMessageId = u.Message.MessageId
 			msg.DisableWebPreview = true
 			msg.Send()
-
 		default:
 			b.ReplyMessage(u.Message.Chat.Id, "You don't seem to be referring to a user.", u.Message.MessageId)
 		}
@@ -382,8 +333,10 @@ func UnBan(b ext.Bot, u gotgbot.Update) {
 	}
 }
 
+/**
+  * TO-DO add /id for forwarded messages
+ */
 func Id(b ext.Bot, u gotgbot.Update) {
-
 	switch {
 	case u.EffectiveMessage.ReplyToMessage != nil:
 		mark := "[" + u.EffectiveMessage.ReplyToMessage.From.FirstName + "](tg://user?id=" +
@@ -402,10 +355,14 @@ func Id(b ext.Bot, u gotgbot.Update) {
 	}
 }
 
+/**
+  * doesnt work yet due lib
+ */
 func InviteLink(b ext.Bot, u gotgbot.Update) {
 	fmt.Println("weg")
 	fmt.Println(u.Message.Chat.InviteLink)
 }
+
 
 func Get(b ext.Bot, u gotgbot.Update) {
 
@@ -423,10 +380,10 @@ func AdminCheck(b ext.Bot, u gotgbot.Update) {
 	switch {
 	case strings.Contains(fmt.Sprintf("%v", owner), user):
 		b.ReplyMessage(u.Message.Chat.Id, "This person is my owner - I would never do anything against them!",
-						u.EffectiveMessage.MessageId)
+			u.EffectiveMessage.MessageId)
 	case strings.Contains(fmt.Sprintf("%v", sudoUser), user):
 		b.ReplyMessage(u.Message.Chat.Id, "This user is one of my sudo users, I would never do anything against them!",
-						u.EffectiveMessage.MessageId)
+			u.EffectiveMessage.MessageId)
 	case strings.Contains(res, user):
 		b.ReplyMessage(u.Message.Chat.Id, "This user is an admin", u.EffectiveMessage.MessageId)
 	default:
