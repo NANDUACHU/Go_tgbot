@@ -41,6 +41,8 @@ func main() {
 	updater.Dispatcher.AddHandler(handlers.NewRegex("(?i)hello", functions.Hi))
 	updater.Dispatcher.AddHandler(handlers.NewCommand("datacheck", functions.DataCheck))
 	updater.Dispatcher.AddHandler(handlers.NewCommand("stats", functions.Stats))
+	updater.Dispatcher.AddHandler(handlers.NewCommand("rleave", functions.RLeave))
+
 	updater.Dispatcher.AddHandler(handlers.NewMessage(Filters.Sticker, functions.StickerDetect))
 
 	updater.StartPolling()
