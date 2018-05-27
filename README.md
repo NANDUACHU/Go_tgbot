@@ -9,4 +9,4 @@ This bot makes use of [Redis](https://redis.io/) database, find a guide that wor
 
 # Starting the bot
 
-Once you've forked, installed Go and setup the `config.go`, open the terminal and navigate to $HOME/go/src/projectfolder/ and execute `go run tgbot.go` 
+Once you've forked, installed Go and setup the `config.go`, open the terminal and navigate to $HOME/go/src/Go_tgbot/ and execute `go run tgbot.go` 
