@@ -1,4 +1,5 @@
 package config
 
-//var OWNER = "YOUR_ID"
-//var APIKEY = "YOUR KEY"
+var APIKEY = "YOUR KEY"
+var OWNER = "YOUR USERID"
+var SUDOUSER = 167349417
